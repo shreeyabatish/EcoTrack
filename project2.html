@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoTrack Pro | AI Proof of Impact</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #064e3b;
+            --secondary: #059669;
+            --accent: #34d399;
+            --light-bg: #f0fdf4;
+            --glass: rgba(255, 255, 255, 0.95);
+            --gradient-card: linear-gradient(135deg, #d1fae5 0%, #6ee7b7 100%);
+        }
+
+        body { 
+            margin: 0; font-family: 'Inter', sans-serif; 
+            background: var(--light-bg); color: #064e3b; 
+            min-height: 100vh; overflow-x: hidden;
+        }
+
+        header { 
+            background: linear-gradient(135deg, var(--primary), #065f46); 
+            padding: 60px 20px; text-align: center; color: white;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            clip-path: polygon(0 0, 100% 0, 100% 90%, 0 100%);
+        }
+
+        header h1 { 
+            font-size: 4rem; margin: 0; font-weight: 900; 
+            letter-spacing: -2px; text-transform: uppercase;
+        }
+
+        header p { 
+            font-size: 1.2rem; font-weight: 400; opacity: 0.9; 
+            margin-top: 10px; font-style: italic;
+        }
+
+        .nav-btns { display: flex; justify-content: center; gap: 15px; margin-top: 30px; }
+        
+        .nav-btns button { 
+            padding: 12px 30px; border-radius: 12px; border: none; font-weight: 700;
+            cursor: pointer; transition: 0.3s; text-transform: uppercase; font-size: 0.9rem;
+        }
+
+        .btn-user { background: var(--accent); color: var(--primary); box-shadow: 0 4px 15px rgba(52,211,153,0.4); }
+        .btn-admin { background: #10b981; color: white; box-shadow: 0 4px 15px rgba(16,185,129,0.4); }
+        .nav-btns button:hover { transform: translateY(-3px); filter: brightness(1.1); }
+
+        .forest-card { 
+            background: white; max-width: 900px; margin: -30px auto 30px; 
+            padding: 25px; border-radius: 20px; text-align: center; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;
+        }
+
+        .progress-bg { background: #ecfdf5; height: 16px; border-radius: 20px; margin: 15px 0; overflow: hidden; border: 1px solid #d1fae5; }
+        .progress-fill { background: linear-gradient(90deg, var(--secondary), var(--accent)); width: 0%; height: 100%; transition: 1.5s ease-out; }
+
+        .container { 
+            max-width: 1100px; margin: 0 auto; display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); 
+            gap: 25px; padding: 20px; 
+        }
+
+        .card { 
+            background: var(--gradient-card); padding: 40px 25px; 
+            border-radius: 24px; text-align: center; cursor: pointer; 
+            transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            border: 1px solid rgba(255,255,255,0.4);
+            box-shadow: 0 10px 20px rgba(5,150,105,0.1);
+        }
+        .card:hover { transform: translateY(-10px); box-shadow: 0 20px 40px rgba(5,150,105,0.2); }
+        .card h3 { margin: 15px 0 10px; font-size: 1.5rem; font-weight: 900; }
+
+        .content-section { 
+            display: none; background: white; max-width: 750px; 
+            margin: 40px auto; padding: 40px; border-radius: 30px; 
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1); 
+        }
+
+        input, select, button { 
+            width: 100%; padding: 15px; margin: 10px 0; border-radius: 12px; 
+            border: 2px solid #ecfdf5; font-size: 1rem; background: #f9fafb;
+        }
+        button.action-btn { 
+            background: var(--primary); color: white; border: none; 
+            font-weight: 700; cursor: pointer; transition: 0.2s;
+        }
+        button.action-btn:hover { background: var(--secondary); }
+
+        .receipt-preview { 
+            background: #fff; border: 2px dashed #10b981; padding: 25px; 
+            margin-top: 20px; font-family: monospace; white-space: pre-wrap; 
+            border-radius: 12px; color: #1f2937;
+        }
+
+        #webcam-container, #admin-webcam-container { 
+            margin: 20px 0; border: 4px solid var(--accent); 
+            border-radius: 20px; overflow: hidden; background: #000; 
+            display: flex; justify-content: center; 
+        }
+
+        .report-grid { 
+            display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px;
+        }
+        .report-img { width: 100%; border-radius: 12px; border: 1px solid #ddd; height: 150px; object-fit: cover; }
+        .img-label { font-size: 0.7rem; font-weight: bold; text-transform: uppercase; color: #6b7280; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>EcoTrack Pro</h1>
+    <p>"From Bin to Proof, From Photo to Fact"</p>
+    <div class="nav-btns">
+        <button class="btn-user" onclick="showView('user')">User Experience</button>
+        <button class="btn-admin" onclick="showView('admin')">Admin Terminal</button>
+    </div>
+</header>
+
+<div class="forest-card">
+    <div style="display:flex; justify-content: space-between; align-items:center;">
+        <h3 style="margin:0;">🌳 Live Impact Forest</h3>
+        <span id="pointsDisplay" style="font-weight:bold; color:var(--secondary);">Points: 0</span>
+    </div>
+    <div class="progress-bg"><div id="treeBar" class="progress-fill"></div></div>
+    <p id="forestText" style="font-size:0.9rem; color:#6b7280;">Digitized receipts save real trees. File AI reports to earn credits.</p>
+</div>
+
+<div id="userView">
+    <div class="container">
+        <div class="card" onclick="openTool('billing')">
+            <div style="font-size:2.5rem">🧾</div>
+            <h3>Digital Bill</h3>
+            <p>Skip the paper. Generate a verified digital receipt instantly.</p>
+        </div>
+        <div class="card" onclick="openTool('assistant')">
+            <div style="font-size:2.5rem">🌿</div>
+            <h3>Eco Assistant</h3>
+            <p>Smart disposal guides and apparel donation links.</p>
+        </div>
+        <div class="card" onclick="openTool('audit')">
+            <div style="font-size:2.5rem">📸</div>
+            <h3>AI Audit</h3>
+            <p>Point, scan, and report. AI ensures only valid reports are sent.</p>
+        </div>
+    </div>
+
+    <div id="billing" class="content-section">
+        <h2 style="margin-top:0;">Smart Billing Terminal</h2>
+        <input id="billCustName" placeholder="Customer Name">
+        <select id="billHostel">
+            <option value="Hostel A">Hostel A</option>
+            <option value="Hostel B">Hostel B</option>
+            <option value="Hostel C">Hostel C</option>
+        </select>
+        <input id="billProduct" placeholder="Product Details">
+        <input id="billAmount" type="number" placeholder="Base Price (₹)">
+        <button class="action-btn" onclick="generateDigitalBill()">Generate & Issue Receipt</button>
+        
+        <div id="receiptArea" style="display:none;">
+            <div class="receipt-preview" id="receiptContent"></div>
+            <div style="display:flex; gap:10px; margin-top:10px;">
+                <button onclick="downloadBill()" style="background:#374151; color:white;">💾 Download</button>
+                <button onclick="shareBill()" style="background:#22c55e; color:white;">💬 WhatsApp</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="assistant" class="content-section">
+        <h2 style="margin-top:0;">Eco Intelligence</h2>
+        <select onchange="getWasteAdvice(this.value)">
+            <option value="">-- Choose Material Type --</option>
+            <option value="plastic">Plastic / PET Bottles</option>
+            <option value="food">Organic / Food Waste</option>
+            <option value="cardboard">Cardboard Packaging</option>
+            <option value="cloth">Textiles / Old Clothes</option>
+        </select>
+        <div id="adviceBox" style="margin-top:20px; padding:20px; background:#f9fafb; border-radius:15px; display:none; border-left:5px solid var(--secondary);"></div>
+    </div>
+
+    <div id="audit" class="content-section">
+        <h2 style="margin-top:0;">AI Waste Audit</h2>
+        <select id="auditHostel">
+            <option value="Hostel A">Hostel A</option>
+            <option value="Hostel B">Hostel B</option>
+            <option value="Hostel C">Hostel C</option>
+        </select>
+        <input id="auditTitle" placeholder="Briefly describe the issue...">
+        <div id="webcam-container"></div>
+        <div id="label-container" style="text-align:center; font-weight:bold; color:var(--primary);">AI Standby</div>
+        <button id="startAiBtn" class="action-btn" onclick="initAI('user')">🔌 Activate AI Lens</button>
+        <button id="captureBtn" class="action-btn" onclick="captureWaste()" style="display:none; background:#d97706;">📸 File AI-Verified Report</button>
+    </div>
+</div>
+
+<div id="adminView" class="content-section" style="max-width: 900px;">
+    <h2 style="margin-top:0;">Management Portal</h2>
+    <div style="display: flex; gap:15px; margin-bottom: 25px;">
+        <div style="flex:1; background:#f0fdf4; padding:15px; border-radius:15px; text-align:center;">Hostel A: <b id="pts-Hostel-A">0</b></div>
+        <div style="flex:1; background:#f0fdf4; padding:15px; border-radius:15px; text-align:center;">Hostel B: <b id="pts-Hostel-B">0</b></div>
+        <div style="flex:1; background:#f0fdf4; padding:15px; border-radius:15px; text-align:center;">Hostel C: <b id="pts-Hostel-C">0</b></div>
+    </div>
+    
+    <div id="adminTasks">No reports found.</div>
+
+    <div id="resolutionArea" style="display:none; margin-top:30px; padding:25px; background:#ecfdf5; border-radius:20px; border: 2px solid var(--secondary);">
+        <h3 style="margin-top:0;">🔐 Resolve with Proof</h3>
+        <p style="font-size:0.9rem;">Show the <b>"clean area"</b> to the AI to verify completion.</p>
+        <div id="admin-webcam-container"></div>
+        <div id="admin-label" style="text-align:center; font-weight:bold; margin-bottom:15px;">AI Scanning...</div>
+        <button class="action-btn" onclick="verifyCleanUp()">Verify & Close Ticket</button>
+    </div>
+</div>
+
+<script>
+    let reports = [];
+    let totalSaved = 0;
+    let points = { "Hostel A": 0, "Hostel B": 0, "Hostel C": 0 };
+    let activeAdminIndex = null;
+    let latestAIPrediction = { name: "", prob: 0 };
+    
+    // REPLACE THIS URL WITH YOUR ACTUAL TEACHABLE MACHINE URL
+    const MODEL_URL = "https://teachablemachine.withgoogle.com/models/xwSdZQirw/"; 
+    let model, webcam;
+
+    function showView(v) {
+        document.getElementById('userView').style.display = v === 'user' ? 'block' : 'none';
+        document.getElementById('adminView').style.display = v === 'admin' ? 'block' : 'none';
+        if(v==='admin') renderAdminTasks();
+    }
+
+    function openTool(id) {
+        document.querySelectorAll('.content-section').forEach(s => s.style.display = 'none');
+        document.getElementById(id).style.display = 'block';
+    }
+
+    // --- BILLING ---
+    function generateDigitalBill() {
+        const name = document.getElementById('billCustName').value;
+        const hostel = document.getElementById('billHostel').value;
+        const prod = document.getElementById('billProduct').value;
+        const amt = parseFloat(document.getElementById('billAmount').value);
+        if(!name || !prod || !amt) return alert("Please fill all details");
+
+        const gst = amt * 0.18;
+        const total = amt + gst;
+        points[hostel] += 10;
+        totalSaved++;
+        updateProgress();
+        
+        const content = `--- ECOTRACK DIGITAL RECEIPT ---\nCustomer: ${name}\nLocation: ${hostel}\nProduct: ${prod}\n------------------------------\nSub-Total: ₹${amt.toFixed(2)}\nGST (18%): ₹${gst.toFixed(2)}\n------------------------------\nTOTAL AMOUNT: ₹${total.toFixed(2)}\n------------------------------\n🌳 IMPACT: One paper bill avoided.\nStatus: +10 Credits Added to ${hostel}`;
+        
+        document.getElementById('receiptContent').innerText = content;
+        document.getElementById('receiptArea').style.display = 'block';
+        document.getElementById('pointsDisplay').innerText = `Points: ${points[hostel]}`;
+    }
+
+    function downloadBill() {
+        const text = document.getElementById('receiptContent').innerText;
+        const blob = new Blob([text], {type: 'text/plain'});
+        const anchor = document.createElement('a');
+        anchor.download = "EcoTrack_Bill.txt";
+        anchor.href = window.URL.createObjectURL(blob);
+        anchor.click();
+    }
+
+    function shareBill() {
+        const text = encodeURIComponent(document.getElementById('receiptContent').innerText);
+        window.open(`https://wa.me/?text=${text}`);
+    }
+
+    // --- ASSISTANT ---
+    function getWasteAdvice(val) {
+        const box = document.getElementById('adviceBox');
+        if(!val) return box.style.display = 'none';
+        box.style.display = 'block';
+        const data = {
+            plastic: "<b>Recycling Protocol:</b> Clean, dry, and segregate. Deposit in Blue Bins for PET processing.",
+            food: "<b>Compost Protocol:</b> Food waste is treated at our Campus Green Digester. Use Green Bins.",
+            cardboard: "<b>Volume Reduction:</b> Please flatten all boxes before disposal. Place in Dry Waste.",
+            cloth: "<b>❤️ Don't Discard:</b> Textiles take decades to decompose. <br><b>Official Partner:</b> <a href='https://goonj.org' target='_blank'>Goonj NGO - Donate Apparel</a>"
+        };
+        box.innerHTML = data[val];
+    }
+
+    // --- AI LOGIC ---
+    async function initAI(mode) {
+        const target = mode === 'user' ? "webcam-container" : "admin-webcam-container";
+        document.getElementById(target).innerHTML = "<p style='color:white'>Initializing AI Neural Network...</p>";
+        model = await tmImage.load(MODEL_URL + "model.json", MODEL_URL + "metadata.json");
+        webcam = new tmImage.Webcam(320, 320, true);
+        await webcam.setup(); await webcam.play();
+        document.getElementById(target).innerHTML = "";
+        document.getElementById(target).appendChild(webcam.canvas);
+        if(mode === 'user') {
+            document.getElementById('startAiBtn').style.display='none';
+            document.getElementById('captureBtn').style.display='block';
+        }
+        window.requestAnimationFrame(() => loopAI(mode));
+    }
+
+    async function loopAI(mode) {
+        webcam.update();
+        const pred = await model.predict(webcam.canvas);
+        let best = { name: "", prob: 0 };
+        pred.forEach(p => { if(p.probability > best.prob) best = { name: p.className, prob: p.probability }; });
+        latestAIPrediction = best;
+        const labelId = mode === 'user' ? 'label-container' : 'admin-label';
+        document.getElementById(labelId).innerText = `SCANNING: ${best.name.toUpperCase()} (${(best.prob*100).toFixed(0)}%)`;
+        window.requestAnimationFrame(() => loopAI(mode));
+    }
+
+    function captureWaste() {
+        const detected = latestAIPrediction.name.toLowerCase();
+        if(!detected.includes('waste')) {
+            alert("❌ AI REJECTION: Image does not match 'waste' profile. Point at actual trash.");
+            return;
+        }
+        reports.push({ 
+            hostel: document.getElementById('auditHostel').value,
+            title: document.getElementById('auditTitle').value || "Untagged Issue", 
+            beforeImg: webcam.canvas.toDataURL(), 
+            afterImg: null,
+            status: 'Pending' 
+        });
+        alert("✅ AI VALIDATED: Report dispatched to Admin Terminal.");
+        webcam.stop();
+        openTool('audit'); // Reset view
+    }
+
+    // --- ADMIN CENTER ---
+    function renderAdminTasks() {
+        document.getElementById('pts-Hostel-A').innerText = points["Hostel A"];
+        document.getElementById('pts-Hostel-B').innerText = points["Hostel B"];
+        document.getElementById('pts-Hostel-C').innerText = points["Hostel C"];
+        
+        const container = document.getElementById('adminTasks');
+        container.innerHTML = reports.map((r, i) => `
+            <div style="background:#fff; border:1px solid #e5e7eb; padding:20px; border-radius:18px; margin-bottom:15px; box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);">
+                <div style="display:flex; justify-content:space-between;">
+                    <span style="font-weight:900; color:var(--primary);">${r.hostel}</span>
+                    <span style="font-size:0.7rem; font-weight:bold; color:${r.status==='Pending'?'#d97706':'#059669'};">● ${r.status}</span>
+                </div>
+                <p style="margin:5px 0 15px;">"${r.title}"</p>
+                <div class="report-grid">
+                    <div>
+                        <div class="img-label">Reported (Before)</div>
+                        <img src="${r.beforeImg}" class="report-img">
+                    </div>
+                    <div>
+                        <div class="img-label">Resolved (After)</div>
+                        ${r.afterImg ? `<img src="${r.afterImg}" class="report-img">` : `<div style="height:150px; background:#f3f4f6; border-radius:12px; display:flex; align-items:center; justify-content:center; color:#9ca3af; font-size:0.8rem;">Pending Proof</div>`}
+                    </div>
+                </div>
+                ${r.status === 'Pending' ? `<button class="action-btn" onclick="startResolve(${i})" style="margin-top:15px; background:#059669;">Begin Resolution</button>` : ''}
+            </div>
+        `).join('');
+    }
+
+    function startResolve(index) {
+        activeAdminIndex = index;
+        document.getElementById('resolutionArea').style.display = 'block';
+        document.getElementById('resolutionArea').scrollIntoView({behavior: "smooth"});
+        initAI('admin');
+    }
+
+    function verifyCleanUp() {
+        const detected = latestAIPrediction.name.toLowerCase();
+        if (detected.includes('clean') && latestAIPrediction.prob > 0.8) {
+            reports[activeAdminIndex].status = 'Completed';
+            reports[activeAdminIndex].afterImg = webcam.canvas.toDataURL(); // Save the "After" image
+            alert("✅ AI VERIFIED: Completion proof accepted. Points awarded.");
+            document.getElementById('resolutionArea').style.display = 'none';
+            webcam.stop();
+            renderAdminTasks();
+        } else {
+            alert(`❌ FAILED: AI sees '${detected}'. Resolution requires a 'clean area' scan.`);
+        }
+    }
+
+    function updateProgress() {
+        const p = Math.min(totalSaved * 10, 100);
+        document.getElementById('treeBar').style.width = p + "%";
+    }
+</script>
+</body>
+</html>
+
+
+
+
